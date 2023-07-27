@@ -12,10 +12,39 @@ weather.temperature = {
 	unit: 'celsius',
 };
 
+function decodeWeather(code, isDay) {
+	const dayChar = isDay == 1 ? "d" : "n";
+	if (code == 0) {
+		return ["clear sky", "01".concat(dayChar)];
+	} else if (code == 1) {
+		return ["few clouds", "02".concat(dayChar)];
+	} else if (code == 2) {
+		return ["partly cloudy", "03".concat(dayChar)];
+	} else if (code == 3) {
+		return ["cloudy", "04".concat(dayChar)];
+	} else if (code == 45 || code == 48) {
+		return ["fog", "50".concat(dayChar)];
+	} else if (code >= 50 && code < 60) {
+		return ["light rain", "09".concat(dayChar)];
+	} else if (code >= 60 && code < 70) {
+		return ["rain", "10".concat(dayChar)];
+	} else if (code >= 80 && code <= 82) {
+		return ["rain showers", "10".concat(dayChar)];
+	} else if (code >= 70 && code < 80) {
+		return ["snow", "13".concat(dayChar)];
+	} else if (code >= 85 && code <= 86) {
+		return ["snow showers", "13".concat(dayChar)];
+	} else if (code >= 95 && code < 100) {
+		return ["thunderstorms", "11".concat(dayChar)];
+	} else {
+		return ["none", "unknown"];
+	}
+}
+
 var tempUnit = CONFIG.weatherUnit;
 
 const KELVIN = 273.15;
-const key = `${CONFIG.weatherKey}`;
+// const key = `${CONFIG.weatherKey}`;
 setPosition();
 
 function setPosition(position) {
@@ -38,17 +67,19 @@ function setPosition(position) {
 }
 
 function getWeather(latitude, longitude) {
-	let api = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&lang=${CONFIG.language}&appid=${key}`;
+	// let api = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&lang=${CONFIG.language}&appid=${key}`;
+	let api = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
 	fetch(api)
 		.then(function(response) {
 			let data = response.json();
 			return data;
 		})
 		.then(function(data) {
-			let celsius = Math.floor(data.main.temp - KELVIN);
+			let celsius = Math.floor(data.current_weather.temperature - KELVIN);
+			let apiWeather = decodeWeather(data.current_weather.weathercode, data.current_weather.is_day);
 			weather.temperature.value = tempUnit == 'C' ? celsius : (celsius * 9) / 5 + 32;
-			weather.description = data.weather[0].description;
-			weather.iconId = data.weather[0].icon;
+			weather.description = apiWeather[0];
+			weather.iconId = apiWeather[1];
 		})
 		.then(function() {
 			displayWeather();
